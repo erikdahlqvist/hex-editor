@@ -95,6 +95,7 @@ fn draw(frame: &mut Frame, bytes: &Vec<String>, selected_byte: usize, input_buff
 
     let editor = Paragraph::new(editor_lines)
         .wrap(Wrap {trim: true})
+        .scroll(((selected_byte / BYTES_PER_ROW) as u16, 0))
         .block(Block::bordered());
 
     let main_layout = Layout::default()
