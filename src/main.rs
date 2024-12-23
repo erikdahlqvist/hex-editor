@@ -3,6 +3,8 @@ use std::{env, fs};
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::{layout::{Constraint, Direction, Layout}, style::{Color, Stylize}, text::{Line, Span}, widgets::{Block, Paragraph, Wrap}, Frame};
 
+const BYTES_PER_ROW: usize = 8;
+
 fn main() {
     let file_path = get_file_path();    
 
@@ -26,6 +28,8 @@ fn main() {
                         selected_byte - 1
                     },
                     KeyCode::Right => selected_byte = (selected_byte + 1).min(bytes.len() - 1),
+                    KeyCode::Up => selected_byte = selected_byte.saturating_sub(BYTES_PER_ROW),
+                    KeyCode::Down => selected_byte = (selected_byte + BYTES_PER_ROW).min(bytes.len() - 1),
                     KeyCode::Delete | KeyCode::Backspace => if !input_buffer.is_empty() {
                         input_buffer.remove(input_buffer.len() - 1);
                     }
@@ -84,9 +88,12 @@ fn draw(frame: &mut Frame, bytes: &Vec<String>, selected_byte: usize, input_buff
                 Span::raw(" ")
             ]
         ).collect::<Vec<Span>>();
+    
+    let editor_lines: Vec<Line> = (0..=((editor_span.len() - 1) / (BYTES_PER_ROW * 2))).map(|i|
+        editor_span[(i * BYTES_PER_ROW * 2)..((i + 1) * BYTES_PER_ROW * 2).min(editor_span.len() - 1)].to_vec().into()
+    ).collect();
 
-    let editor_text: Line = editor_span.into();
-    let editor = Paragraph::new(editor_text)
+    let editor = Paragraph::new(editor_lines)
         .wrap(Wrap {trim: true})
         .block(Block::bordered());
 
