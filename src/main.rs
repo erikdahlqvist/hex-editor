@@ -110,6 +110,6 @@ fn draw(frame: &mut Frame, bytes: &Vec<String>, selected_byte: usize, input_buff
 
     frame.render_widget(editor, main_layout[0]);
 
-    frame.render_widget(String::from("Cursor: ") + &selected_byte.to_string(), status_bar_layout[0]);
+    frame.render_widget(String::from("Cursor: ") + &format!("{:0>8X}", selected_byte), status_bar_layout[0]);
     frame.render_widget(String::from("Buffer: ") + input_buffer, status_bar_layout[1]);
 }
