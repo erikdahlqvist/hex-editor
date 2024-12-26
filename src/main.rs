@@ -16,10 +16,13 @@ fn main() {
 
     let mut input_buffer = String::with_capacity(2);
 
+    let mut status_message = String::new();
+
     loop {
-        terminal.draw(|frame| draw(frame, &bytes, selected_byte, &input_buffer)).unwrap();
+        terminal.draw(|frame| draw(frame, &bytes, selected_byte, &input_buffer, &status_message)).unwrap();
         match event::read().unwrap() {
             Event::Key(KeyEvent {code ,..}) => {
+                status_message.clear();
                 match code {
                     KeyCode::Char('q') => break,
                     KeyCode::Left => selected_byte = if selected_byte == 0 {
@@ -33,7 +36,11 @@ fn main() {
                     KeyCode::Delete | KeyCode::Backspace => if !input_buffer.is_empty() {
                         input_buffer.remove(input_buffer.len() - 1);
                     }
-                    KeyCode::Char('w') => save(file_path.clone(), bytes.clone()),
+                    KeyCode::Char('w') => status_message = if save(file_path.clone(), bytes.clone()).is_ok() {
+                        String::from("Save was successful")
+                    } else {
+                        String::from("Save was unsuccessful")
+                    },
                     KeyCode::Char(c) => if c.is_ascii_hexdigit() && input_buffer.len() < 2 {
                         input_buffer += &c.to_uppercase().collect::<String>();
                     },
@@ -65,19 +72,19 @@ fn get_file_path() -> String {
     return file_path.to_string();
 }
 
-fn save(file_path: String, bytes: Vec<String>) {
+fn save(file_path: String, bytes: Vec<String>) -> Result<(), std::io::Error> {
     let parsed: Vec<u8> = bytes.iter().map(|byte|
         u8::from_str_radix(&byte, 16).unwrap()
     ).collect();
 
-    fs::write(file_path, parsed).unwrap();
+    return fs::write(file_path, parsed);
 }
 
 fn parse_bytes(bytes: Vec<u8>) -> Vec<String> {
     return bytes.iter().map(|byte| format!("{byte:X}")).collect();
 }
 
-fn draw(frame: &mut Frame, bytes: &Vec<String>, selected_byte: usize, input_buffer: &str) {
+fn draw(frame: &mut Frame, bytes: &Vec<String>, selected_byte: usize, input_buffer: &str, status_message: &str) {
     let editor_span = bytes.iter().enumerate().flat_map(|(i, byte)|
             [
                 Span::from(byte).bg(if i == selected_byte {
@@ -105,11 +112,12 @@ fn draw(frame: &mut Frame, bytes: &Vec<String>, selected_byte: usize, input_buff
 
     let status_bar_layout= Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(Vec::from([Constraint::Length(20), Constraint::Length(20)]))
+        .constraints(Vec::from([Constraint::Length(20), Constraint::Length(20), Constraint::Percentage(100)]))
         .split(main_layout[1]);
 
     frame.render_widget(editor, main_layout[0]);
 
     frame.render_widget(String::from("Cursor: ") + &format!("{:0>8X}", selected_byte), status_bar_layout[0]);
     frame.render_widget(String::from("Buffer: ") + input_buffer, status_bar_layout[1]);
+    frame.render_widget(status_message, status_bar_layout[2]);
 }
